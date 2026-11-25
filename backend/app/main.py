@@ -30,7 +30,7 @@ STATUSES = {"reported", "assigned", "in_progress", "resolved", "rejected"}
 app = FastAPI(title="CIVISENSE API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:.*|http://127\.0\.0\.1:.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -83,11 +83,13 @@ class StatusUpdate(BaseModel):
 
 
 @app.get("/")
+@app.get("/api")
 def root():
     return {"name": "CIVISENSE API", "docs": "/docs", "health": "ok"}
 
 
 @app.get("/api/reports")
+@app.get("/reports")
 def list_reports():
     with connect() as con:
         rows = con.execute("SELECT * FROM reports ORDER BY created_at DESC").fetchall()
@@ -95,6 +97,7 @@ def list_reports():
 
 
 @app.post("/api/reports")
+@app.post("/reports")
 async def create_report(
     category: str = Form(...),
     description: str = Form(""),
@@ -159,6 +162,7 @@ async def create_report(
 
 
 @app.patch("/api/reports/{report_id}/status")
+@app.patch("/reports/{report_id}/status")
 def update_status(report_id: str, payload: StatusUpdate):
     if payload.status not in STATUSES:
         raise HTTPException(400, f"status must be one of: {', '.join(sorted(STATUSES))}")
@@ -174,5 +178,6 @@ def update_status(report_id: str, payload: StatusUpdate):
 
 
 @app.get("/api/health")
+@app.get("/health")
 def health():
-    return {"status": "ok", "database": "sqlite"}
+    return {"status": "ok", "service": "civisense-backend", "database": "sqlite"}
