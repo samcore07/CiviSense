@@ -9,6 +9,13 @@ import BottomBanner from './components/BottomBanner';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import MainApp from './components/MainApp';
+import {
+  isSupabaseConfigured,
+  supabaseFetchReports,
+  supabaseGetSession,
+  supabaseSignOut,
+  supabaseSubscribeReports
+} from './supabase';
 import './style.css';
 
 const API = 'http://127.0.0.1:8000';
@@ -19,6 +26,7 @@ export default function App() {
     return localStorage.getItem('civisense_theme') || localStorage.getItem('roadguard_theme') || 'light';
   });
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authRole, setAuthRole] = useState('citizen');
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('civisense_user') || localStorage.getItem('roadguard_user');
@@ -30,20 +38,56 @@ export default function App() {
   const [activeNav, setActiveNav] = useState('preface');
   const [reports, setReports] = useState([]);
 
-  // Load live reports from FastAPI for Preface Map and Main App
+  // Load live reports from Supabase (with FastAPI fallback)
   async function loadReports() {
+    if (isSupabaseConfigured()) {
+      try {
+        const data = await supabaseFetchReports();
+        if (data && data.length > 0) {
+          setReports(data);
+          return;
+        }
+      } catch (e) {
+        console.warn('Supabase reports fetch note:', e);
+      }
+    }
+
     try {
       const res = await fetch(`${API}/api/reports`);
       if (res.ok) {
         setReports(await res.json());
       }
-    } catch (e) {
+    } catch {
       console.warn('Backend currently offline, running demo coordinates.');
     }
   }
 
   useEffect(() => {
+    // Check and restore active Supabase session
+    if (isSupabaseConfigured()) {
+      supabaseGetSession().then((sessionUser) => {
+        if (sessionUser) {
+          setUser(sessionUser);
+        }
+      });
+    }
+
     loadReports();
+
+    // Subscribe to live Supabase reports for Preface radar and console
+    const unsubscribe = supabaseSubscribeReports(
+      (newReport) => {
+        setReports((prev) => [newReport, ...prev.filter((r) => r.id !== newReport.id)]);
+      },
+      (updatedReport) => {
+        setReports((prev) => prev.map((r) => (r.id === updatedReport.id ? updatedReport : r)));
+      },
+      (deletedReport) => {
+        setReports((prev) => prev.filter((r) => r.id !== deletedReport.id));
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
   // Apply theme to html root
@@ -96,7 +140,12 @@ export default function App() {
     setCurrentView('app');
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await supabaseSignOut();
+    } catch {
+      // ignore
+    }
     setUser(null);
     localStorage.removeItem('civisense_user');
     localStorage.removeItem('roadguard_user');
@@ -123,6 +172,8 @@ export default function App() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
+        initialRole={authRole}
+        currentUser={user}
       />
 
       {currentView === 'landing' ? (
@@ -133,7 +184,10 @@ export default function App() {
             theme={theme}
             toggleTheme={toggleTheme}
             user={user}
-            onOpenAuth={() => setAuthModalOpen(true)}
+            onOpenAuth={() => {
+              setAuthRole('citizen');
+              setAuthModalOpen(true);
+            }}
             onSignOut={handleSignOut}
             activeNav={activeNav}
             setActiveNav={setActiveNav}
@@ -141,7 +195,10 @@ export default function App() {
 
           {/* 2nd Screenshot stays on top */}
           <Hero
-            onStartReporting={() => setCurrentView('app')}
+            onStartReporting={() => {
+              setAuthRole('citizen');
+              setAuthModalOpen(true);
+            }}
             onExploreApp={() => {
               const el = document.getElementById('gis-map') || document.getElementById('preface');
               if (el) {
@@ -168,7 +225,10 @@ export default function App() {
 
           {/* 5. Footer and end portion remains as it is */}
           <BottomBanner
-            onOpenApp={() => setCurrentView('app')}
+            onOpenApp={() => {
+              setAuthRole('admin');
+              setAuthModalOpen(true);
+            }}
           />
 
           <Footer onNavClick={handleNavClick} />

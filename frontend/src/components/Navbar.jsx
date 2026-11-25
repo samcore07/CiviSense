@@ -80,13 +80,6 @@ export default function Navbar({
 
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className="logged-in-pill">
-                  <span className="logged-in-dot"></span>
-                  <span>Logged in as</span>
-                  <span className="logged-in-role-tag">
-                    {user.role === 'admin' ? 'Admin' : 'Citizen'}
-                  </span>
-                </div>
                 <button
                   className="btn-pill-primary"
                   onClick={() => setCurrentView('app')}

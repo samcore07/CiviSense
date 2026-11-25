@@ -22,6 +22,13 @@ import {
   Sparkles,
   GitMerge
 } from './Icons';
+import {
+  isSupabaseConfigured,
+  supabaseFetchReports,
+  supabaseCreateReport,
+  supabaseUpdateReportStatus,
+  supabaseSubscribeReports
+} from '../supabase';
 
 const API = 'http://127.0.0.1:8000';
 const categories = ['pothole', 'garbage', 'waterlogging', 'streetlight', 'road_damage'];
@@ -76,8 +83,20 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
-  // Load live reports from FastAPI
+  // Load live reports from Supabase (with FastAPI / offline fallback)
   async function loadReports() {
+    if (isSupabaseConfigured()) {
+      try {
+        const data = await supabaseFetchReports();
+        if (data) {
+          setReports(data);
+          return;
+        }
+      } catch (err) {
+        console.warn('Supabase fetch note, attempting fallback:', err);
+      }
+    }
+
     try {
       const res = await fetch(`${API}/api/reports`);
       if (res.ok) {
@@ -88,13 +107,28 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
         setMessageType('error');
       }
     } catch {
-      setMessage('FastAPI backend unreachable on port 8000. Running in offline mode.');
+      setMessage('Running in local prototype mode with existing reports.');
       setMessageType('warning');
     }
   }
 
   useEffect(() => {
     loadReports();
+
+    // Real-time Supabase subscriptions for live GIS map updates
+    const unsubscribe = supabaseSubscribeReports(
+      (newReport) => {
+        setReports((prev) => [newReport, ...prev.filter((r) => r.id !== newReport.id)]);
+      },
+      (updatedReport) => {
+        setReports((prev) => prev.map((r) => (r.id === updatedReport.id ? updatedReport : r)));
+      },
+      (deletedReport) => {
+        setReports((prev) => prev.filter((r) => r.id !== deletedReport.id));
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
   // HTML5 GPS Geolocation
@@ -164,25 +198,59 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
     setMessageType('success');
   }
 
-  // Submit report to FastAPI
+  // Submit report to Supabase (with FastAPI fallback)
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!photo) {
-      setMessage('Please select or capture a defect photograph.');
-      setMessageType('warning');
-      return;
-    }
-
     setBusy(true);
     setMessage('');
 
+    // Try Supabase first
+    if (isSupabaseConfigured()) {
+      try {
+        const result = await supabaseCreateReport({
+          category: form.category,
+          description: form.description,
+          latitude: form.latitude,
+          longitude: form.longitude,
+          severity: form.severity,
+          photoFile: photo,
+          user
+        });
+
+        if (result.duplicateWarning) {
+          setMessage(`Duplicate Complaint Alert: An existing ${form.category.replace('_', ' ')} ticket within 40m was detected! Your report has been linked to parent Ticket #${result.duplicateOf?.slice(0, 8) || 'root'}.`);
+          setMessageType('warning');
+        } else {
+          setMessage('Civic issue registered successfully! Geotagged on GIS map and queued for municipal triage.');
+          setMessageType('success');
+        }
+
+        setForm({
+          category: 'pothole',
+          description: '',
+          latitude: '22.5726',
+          longitude: '88.3639',
+          severity: 4
+        });
+        clearPhoto();
+        await loadReports();
+        setBusy(false);
+        return;
+      } catch (supabaseErr) {
+        console.warn('Supabase submission note, falling back to local API:', supabaseErr);
+      }
+    }
+
+    // Fallback to FastAPI
     const data = new FormData();
     data.append('category', form.category);
     data.append('description', form.description);
     data.append('latitude', form.latitude);
     data.append('longitude', form.longitude);
     data.append('severity', form.severity);
-    data.append('photo', photo);
+    if (photo) {
+      data.append('photo', photo);
+    }
 
     try {
       const res = await fetch(`${API}/api/reports`, {
@@ -217,8 +285,20 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
     }
   }
 
-  // Change status of report (Complaint Status Tracking)
+  // Change status of report (Complaint Status Tracking via Supabase)
   async function changeStatus(id, newStatus) {
+    if (isSupabaseConfigured()) {
+      try {
+        await supabaseUpdateReportStatus(id, newStatus);
+        setMessage(`Complaint #${id.slice(0, 8)} status updated to "${newStatus.replace('_', ' ').toUpperCase()}". Citizen tracking updated.`);
+        setMessageType('success');
+        loadReports();
+        return;
+      } catch (err) {
+        console.warn('Supabase status update error, trying local fallback:', err);
+      }
+    }
+
     try {
       const res = await fetch(`${API}/api/reports/${id}/status`, {
         method: 'PATCH',
@@ -268,7 +348,7 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                 CS
               </div>
               <span style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-0.3px' }}>
-                CiviSense Admin GIS Console
+                {user?.role === 'admin' ? 'CiviSense Admin GIS Operations' : 'CiviSense Citizen Reporting Console'}
               </span>
             </div>
           </div>
@@ -449,7 +529,6 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                         accept="image/jpeg,image/png,image/webp"
                         style={{ display: 'none' }}
                         onChange={handlePhotoChange}
-                        required
                       />
                     </label>
                   ) : (

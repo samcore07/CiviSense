@@ -65,3 +65,11 @@
 - **Tutorial Cleanup**: Removed the developer upload button (`Upload Video File`) and hackathon submission text (`Official Demo Submission (Under 4 minutes)`), presenting a clean video container with external YouTube reference.
 - **Logotype Unification**: Removed the CSS gap and whitespace between `CIVI` and `SENSE` so it renders seamlessly as one unified word.
 - **Sticky Header Stabilization**: Replaced `body { overflow-x: hidden; }` with `overflow-x: clip;` to fix browser scroll-container clipping, ensuring `.navbar-wrapper` remains firmly pinned at `top: 0` with frosted glass backdrop blur.
+
+### Iteration 7: Supabase PostgreSQL & Role-Based Authentication
+- **Supabase Client & Auth**: Installed `@supabase/supabase-js`, authored `frontend/src/supabase.js` with client resolver reading from environment variables.
+- **SQL Migration & Schemas**: Created `supabase/schema.sql` and `supabase/FIX_DATABASE_PERMISSIONS.sql` establishing `reports`, `profiles`, storage bucket `issue-images`, RLS policies, and auto-profile signup trigger (`handle_new_user`).
+- **AuthModal**: Integrated login/signup dialog supporting Citizen Reporter and Municipal Admin (GIS) role selection with 1-click sandbox demo access.
+- **Dynamic Realtime Subscriptions**: Fixed Supabase channel conflict by uniquely namespacing subscription channel IDs per component mount.
+- **Form Resilience**: Updated backend and frontend to make defect photos optional, enabling report submission with or without image upload while retaining automated 40m Haversine deduplication.
+- **UI Gating**: Routed both `Report Issue` and `Explore GIS Console` through the authentication flow with pre-selected roles.

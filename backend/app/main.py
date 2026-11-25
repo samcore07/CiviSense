@@ -101,7 +101,7 @@ async def create_report(
     latitude: float = Form(...),
     longitude: float = Form(...),
     severity: int = Form(3),
-    photo: UploadFile = File(...)
+    photo: UploadFile = File(None)
 ):
     category = category.strip().lower()
     if category not in CATEGORIES:
@@ -110,17 +110,18 @@ async def create_report(
         raise HTTPException(400, "Invalid GPS coordinates.")
     if not (1 <= severity <= 5):
         raise HTTPException(400, "Severity must be between 1 and 5.")
-    if photo.content_type not in {"image/jpeg", "image/png", "image/webp"}:
-        raise HTTPException(400, "Upload a JPG, PNG or WebP image.")
 
     report_id = str(uuid.uuid4())
-    suffix = Path(photo.filename or "upload.jpg").suffix.lower()
-    if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
-        suffix = ".jpg"
-    image_name = f"{report_id}{suffix}"
-    target = UPLOAD_DIR / image_name
-    with target.open("wb") as buffer:
-        shutil.copyfileobj(photo.file, buffer)
+    image_name = None
+    target = None
+    if photo and photo.filename:
+        suffix = Path(photo.filename).suffix.lower()
+        if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+            suffix = ".jpg"
+        image_name = f"{report_id}{suffix}"
+        target = UPLOAD_DIR / image_name
+        with target.open("wb") as buffer:
+            shutil.copyfileobj(photo.file, buffer)
 
     # Duplicate heuristic: same category within 40 metres. Admin must verify.
     duplicate_of = None
@@ -153,7 +154,7 @@ async def create_report(
         "report": row_to_dict(row),
         "duplicate_warning": duplicate_of is not None,
         "duplicate_of": duplicate_of,
-        "ai_detection": detect_issue(str(target))
+        "ai_detection": detect_issue(str(target)) if (target is not None) else {"status": "no_image"}
     }
 
 
