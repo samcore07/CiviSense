@@ -533,8 +533,8 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div className="brand-badge" style={{ width: '28px', height: '28px', fontSize: '14px' }}>
-                CS
+              <div className="brand-badge" style={{ width: '30px', height: '30px' }}>
+                <img src="/logo.png" alt="CiviSense Emblem" className="brand-badge-img" />
               </div>
               <span style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-0.3px' }}>
                 {isAdmin ? 'CiviSense Admin GIS Operations' : 'CiviSense Citizen Reporting Console'}

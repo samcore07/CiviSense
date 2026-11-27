@@ -48,7 +48,7 @@ export default function Navbar({
           {/* Brand Logo & Title */}
           <div className="nav-brand" onClick={() => setCurrentView('landing')}>
             <div className="brand-badge" title="CiviSense CV·AI·GIS">
-              CS
+              <img src="/logo.png" alt="CiviSense Emblem" className="brand-badge-img" />
             </div>
             <div className="brand-info">
               <span className="brand-title">CIVI<span>SENSE</span></span>

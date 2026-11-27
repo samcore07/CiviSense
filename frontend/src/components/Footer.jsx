@@ -7,8 +7,8 @@ export default function Footer({ onNavClick }) {
         <div className="footer-grid">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="brand-badge" style={{ width: '30px', height: '30px', fontSize: '15px' }}>
-                CS
+              <div className="brand-badge" style={{ width: '32px', height: '32px' }}>
+                <img src="/logo.png" alt="CiviSense Emblem" className="brand-badge-img" />
               </div>
               <span style={{ fontWeight: 800, fontSize: '16px', letterSpacing: '-0.3px' }}>
                 CiviSense
