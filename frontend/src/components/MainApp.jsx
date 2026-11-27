@@ -528,24 +528,30 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
       <header className="app-header">
         <div className="app-header-inner">
           <div className="app-header-left">
-            <button className="btn-back-landing" onClick={onBackToLanding}>
-              <ArrowLeft size={14} /> Back to Landing Page
+            <button className="btn-back-landing" onClick={onBackToLanding} title="Back to Landing Page">
+              <ArrowLeft size={14} />
+              <span className="btn-back-text">Back to Landing Page</span>
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div className="brand-badge" style={{ width: '30px', height: '30px' }}>
+            <div className="app-header-brand">
+              <div className="brand-badge">
                 <img src="/logo.png" alt="CiviSense Emblem" className="brand-badge-img" />
               </div>
-              <span style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-0.3px' }}>
+              <span className="app-brand-title app-brand-title-full">
                 {isAdmin ? 'CiviSense Admin GIS Operations' : 'CiviSense Citizen Reporting Console'}
+              </span>
+              <span className="app-brand-title app-brand-title-compact">
+                CiviSense {isAdmin ? 'Admin' : 'Console'}
               </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div className="app-header-right">
             <div className="app-user-pill">
               <span className="logged-in-dot"></span>
-              <span>Logged in as <strong>{user?.name || (isAdmin ? 'Municipal GIS Officer' : 'Citizen Reporter')}</strong></span>
+              <span className="app-user-name">
+                Logged in as <strong>{user?.name || (isAdmin ? 'Municipal GIS Officer' : 'Citizen Reporter')}</strong>
+              </span>
               <span className="app-user-role-badge">
                 {isAdmin ? 'ADMIN' : 'CITIZEN'}
               </span>
@@ -561,11 +567,12 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
 
             {user && (
               <button
-                className="btn-text"
-                style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                className="btn-text btn-signout"
                 onClick={onSignOut}
+                title="Sign out"
               >
-                <LogOut size={13} /> Sign Out
+                <LogOut size={13} />
+                <span className="btn-signout-text">Sign Out</span>
               </button>
             )}
           </div>
@@ -581,13 +588,14 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                 className={`app-tab-item ${activeTab === 'map' ? 'active' : ''}`}
                 onClick={() => setActiveTab('map')}
               >
-                <MapPin size={15} /> Live GIS Map
+                <MapPin size={15} /> <span>Live GIS Map</span>
               </button>
               <button
                 className={`app-tab-item ${activeTab === 'table' ? 'active' : ''}`}
                 onClick={() => setActiveTab('table')}
               >
-                <ShieldCheck size={15} /> Complaint Status Tracking ({validReports.length} Reports)
+                <ShieldCheck size={15} /> <span>Status Tracking</span>
+                <span className="app-tab-badge">{validReports.length}</span>
               </button>
             </>
           ) : (
@@ -596,25 +604,26 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                 className={`app-tab-item ${activeTab === 'map' ? 'active' : ''}`}
                 onClick={() => setActiveTab('map')}
               >
-                <MapPin size={15} /> Live GIS Map
+                <MapPin size={15} /> <span>Live GIS Map</span>
               </button>
               <button
                 className={`app-tab-item ${activeTab === 'ai_detector' ? 'active' : ''}`}
                 onClick={() => setActiveTab('ai_detector')}
               >
-                <Camera size={15} /> AI Issue Detection
+                <Camera size={15} /> <span>AI Issue Detection</span>
               </button>
               <button
                 className={`app-tab-item ${activeTab === 'report' ? 'active' : ''}`}
                 onClick={() => setActiveTab('report')}
               >
-                <Send size={15} /> Citizen Complaint
+                <Send size={15} /> <span>Citizen Complaint</span>
               </button>
               <button
                 className={`app-tab-item ${activeTab === 'table' ? 'active' : ''}`}
                 onClick={() => setActiveTab('table')}
               >
-                <ShieldCheck size={15} /> Complaint Status Tracking ({validReports.length} Reports)
+                <ShieldCheck size={15} /> <span>Status Tracking</span>
+                <span className="app-tab-badge">{validReports.length}</span>
               </button>
             </>
           )}
@@ -928,12 +937,12 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                   </MapContainer>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                  <span>OpenStreetMap GIS Vector Layer Active</span>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <span>● Reported (Amber)</span>
-                    <span>● In Progress (Blue)</span>
-                    <span>● Resolved (Green)</span>
+                <div className="app-map-legend">
+                  <span className="app-map-legend-layer">OpenStreetMap GIS Vector Layer Active</span>
+                  <div className="app-map-legend-items">
+                    <span className="legend-pin-dot reported">● Reported (Amber)</span>
+                    <span className="legend-pin-dot in_progress">● In Progress (Blue)</span>
+                    <span className="legend-pin-dot resolved">● Resolved (Green)</span>
                   </div>
                 </div>
               </section>
@@ -942,29 +951,27 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
         {/* Complaint Status Tracking Table */}
         {activeTab === 'table' && (
           <section className="app-panel" style={{ marginTop: '24px' }}>
-            <div className="app-panel-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
+            <div className="app-panel-header app-table-header">
               <div>
                 <span className="preview-eyebrow">COMPLAINT STATUS TRACKING & AUDIT LOG</span>
                 <h3 className="app-panel-title">Active Municipal Issues</h3>
               </div>
 
-              {/* Filters & Search */}
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <Search size={14} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
+              {/* Responsive Filters & Search */}
+              <div className="table-filters-row">
+                <div className="table-search-box">
+                  <Search size={14} className="table-search-icon" />
                   <input
                     type="text"
                     placeholder="Search complaints..."
-                    className="demo-input"
-                    style={{ paddingLeft: '32px', fontSize: '12px', width: '180px' }}
+                    className="demo-input table-search-input"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
                 <select
-                  className="demo-input"
-                  style={{ width: '140px', fontSize: '12px' }}
+                  className="demo-input table-filter-select"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -977,8 +984,7 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                 </select>
 
                 <select
-                  className="demo-input"
-                  style={{ width: '140px', fontSize: '12px' }}
+                  className="demo-input table-filter-select"
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 >
@@ -993,11 +999,15 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
             </div>
 
             {filteredReports.length === 0 ? (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div className="table-empty-state">
                 No civic complaints match your filter.
               </div>
             ) : (
-              <div className="app-table-wrapper">
+              <>
+                <div className="mobile-table-scroll-hint">
+                  <span>← Swipe horizontally to view full tracking log and dispatch actions →</span>
+                </div>
+                <div className="app-table-wrapper">
                 <table className="app-table">
                   <thead>
                     <tr>
@@ -1079,6 +1089,7 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </section>
         )}

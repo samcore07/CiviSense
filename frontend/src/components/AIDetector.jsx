@@ -377,26 +377,24 @@ export default function AIDetector({ API, onPrefillComplaint, onDirectFileCompla
           </div>
 
           {/* Mode Switcher */}
-          <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-surface-subtle)', padding: '4px', borderRadius: 'var(--radius-pill)' }}>
+          <div className="ai-mode-toggle-group">
             <button
               className={`category-chip-btn ${mode === 'live' ? 'active' : ''}`}
-              style={{ margin: 0, padding: '6px 16px', fontSize: '13px' }}
               onClick={() => setMode('live')}
             >
-              <Camera size={14} /> Live Camera Scanner
+              <Camera size={14} /> <span>Live Camera Scanner</span>
             </button>
             <button
               className={`category-chip-btn ${mode === 'upload' ? 'active' : ''}`}
-              style={{ margin: 0, padding: '6px 16px', fontSize: '13px' }}
               onClick={() => setMode('upload')}
             >
-              <Layers size={14} /> Image File Analyzer
+              <Layers size={14} /> <span>Image File Analyzer</span>
             </button>
           </div>
         </div>
 
         {/* Legend */}
-        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '12px', fontSize: '12px' }}>
+        <div className="ai-detector-legend">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38BDF8', fontWeight: 600 }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: '#38BDF8' }}></span>
             Potholes
@@ -571,7 +569,7 @@ export default function AIDetector({ API, onPrefillComplaint, onDirectFileCompla
             {/* Model Target Filter */}
             <div style={{ marginBottom: '14px' }}>
               <label className="demo-label">Target Models</label>
-              <div className="category-chips-row" style={{ marginTop: '4px' }}>
+              <div className="ai-model-chips-grid" style={{ marginTop: '4px' }}>
                 {[
                   { key: 'all', label: 'All 3 Models (Recommended)' },
                   { key: 'pothole', label: '🕳️ Potholes Only' },
@@ -681,7 +679,7 @@ export default function AIDetector({ API, onPrefillComplaint, onDirectFileCompla
               )}
 
               {/* Metrics Pill Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
+              <div className="ai-metrics-grid">
                 <div className="app-stat-card" style={{ padding: '10px' }}>
                   <div className="num" style={{ fontSize: '20px', color: '#38BDF8' }}>
                     {analysisResult.pothole_count || 0}
