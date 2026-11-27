@@ -5,45 +5,39 @@ export default function Features() {
   const featureList = [
     {
       icon: <Eye size={20} />,
-      title: 'AI Pothole & Road Damage Detection',
-      desc: 'Trained Computer Vision models (YOLO) scan citizen defect photographs to autonomously identify asphalt craters, surface subsidence, and cracks, scoring depth and vehicular hazard severity.',
-      tag: 'YOLO Computer Vision'
+      title: 'Custom-Trained YOLO11 Potholes',
+      desc: 'Fine-tuned on real-world asphalt rupture datasets with transfer learning for high-precision crater and crack segmentation on Apple Silicon MPS.',
+      tag: 'Custom YOLO11 (MPS)'
     },
     {
       icon: <Layers size={20} />,
-      title: 'Garbage, Waterlogging & Streetlight Classification',
-      desc: 'Multi-class visual AI categorizes unmanaged solid waste heaps, monsoon waterlogging across crossings, and dark non-functional streetlights with instant confidence scores.',
-      tag: 'Multi-Class Neural Triage'
+      title: 'Waterlogging with False-Positive Guard',
+      desc: 'Custom-trained segmentation model backed by degenerate bounding box filters (<70% area) to eliminate indoor room false positives.',
+      tag: 'Calibrated YOLO11 Seg'
     },
     {
       icon: <Crosshair size={20} />,
-      title: 'GPS-Based Complaint Registration',
-      desc: 'One-tap satellite geolocation locks precise latitude and longitude coordinates directly from the citizen mobile browser, eliminating ambiguity and mapping exact road defect positions.',
-      tag: 'HTML5 GPS Geotagging'
-    },
-    {
-      icon: <GitMerge size={20} />,
-      title: 'Duplicate Complaint Detection',
-      desc: 'Haversine mathematical clustering detects when another citizen has already reported the same issue within a 40-metre proximity window, linking reports to prevent redundant crew dispatches.',
-      tag: '40m Haversine Heuristic'
-    },
-    {
-      icon: <Sparkles size={20} />,
-      title: 'AI-Generated Complaint Descriptions',
-      desc: 'Natural language AI models automatically formulate detailed, professional municipal complaint briefs from visual defect features, GPS location, and severity ratings in under 0.5s.',
-      tag: 'Local LLM Prompt Synthesis'
+      title: 'Open-Vocabulary Garbage Triage',
+      desc: 'Tailored municipal prompt lexicon detects black bags, loose trash, overflowing bins, and dumpsters at calibrated 0.15 confidence.',
+      tag: 'Open-Vocab YOLO-World'
     },
     {
       icon: <MapPin size={20} />,
-      title: 'Admin Dashboard with Live GIS Issue Map',
-      desc: 'Interactive OpenStreetMap GIS control console allowing municipal officers to visualize clusters, inspect defect photos, filter by category or ward, and dispatch field crews in real time.',
-      tag: 'Interactive OpenStreetMap GIS'
+      title: 'Radial Spiral Anti-Occlusion Radar',
+      desc: 'Anti-collision algorithm blooms overlapping landmark pins outward radially (~700m) so every incident is visible on OpenStreetMap.',
+      tag: 'Radial Pin Dispersion'
     },
     {
       icon: <ClipboardCheck size={20} />,
-      title: 'End-to-End Complaint Status Tracking',
-      desc: 'Citizens and municipal supervisors track every ticket across its complete lifecycle: Reported → Assigned → In Progress → Resolved, backed by verifiable audit timestamps.',
-      tag: 'Lifecycle Audit Pipeline'
+      title: 'Role-Based Municipal Authority',
+      desc: 'Admin console provides dispatch status dropdowns; citizens track live work orders with secure read-only locked status badges.',
+      tag: 'Strict RBAC Pipeline'
+    },
+    {
+      icon: <Sparkles size={20} />,
+      title: '1-Click AI Complaint Dispatch',
+      desc: 'Visual inference automatically synthesizes municipal briefs, estimates severity (1–5), and files verified tickets in under 0.5s.',
+      tag: '1-Click Neural Filing'
     }
   ];
 
@@ -53,10 +47,10 @@ export default function Features() {
         <div className="section-header">
           <span className="section-eyebrow">CORE ARCHITECTURAL PILLARS</span>
           <h2 className="section-title">
-            Computer Vision + AI + GIS for Smarter Civic Governance.
+            Neural Vision + Spatial Deduplication + Live GIS.
           </h2>
           <p className="section-desc">
-            A comprehensive civic infrastructure platform connecting citizen smartphones to municipal road maintenance squads through automated intelligence and spatial mapping.
+            An intelligent civic pipeline connecting citizen smartphones to municipal road maintenance squads in real time.
           </p>
         </div>
 

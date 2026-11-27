@@ -35,13 +35,13 @@ The frontend is built on **React 19** using **Vite v8.3.8** as the build tool an
     1. *Computer Vision (YOLO)*: Displays model classification, bounding box coordinates (`bbox`), and hazard severity in high-contrast blue (`.cv-badge-blue`).
     2. *40m Spatial Deduplication*: Displays Haversine match proximity, parent ticket reference, and suppression status in high-contrast green (`.cv-badge-green`).
     3. *AI Complaint Synthesis*: Displays automated municipal dispatch brief in italic callout with high-contrast amber badge (`.cv-badge-amber`).
-  - **Category Switcher**: Allows interactive switching between simulated civic defect profiles (`🕳️ Pothole Damage`, `🌊 Waterlogging & Sump`, `💡 Broken Streetlight`, `🗑️ Garbage Dump`).
+  - **Category Switcher**: Allows interactive switching between simulated civic defect profiles (`🕳️ Pothole Damage`, `🌊 Waterlogging & Sump`, `🗑️ Garbage Dump`).
   - **Telemetry Numbers Strip**: Metric callouts (`96.8% Detection Accuracy`, `40m Dedup Radius`, `0.4s AI Latency`, `100% GIS Coverage`).
   - **Live GIS Radar Console**: Interactive Leaflet map visualizing actual reports fetched from the FastAPI backend with category filtering.
 - **`Features.jsx`**:
   - 7 architectural pillar cards detailing:
-    1. AI Pothole & Road Damage Detection
-    2. Garbage, Waterlogging & Streetlight Classification
+    1. AI Pothole Detection
+    2. Garbage & Waterlogging Classification
     3. GPS-Based Complaint Registration
     4. Duplicate Complaint Detection (40m Haversine)
     5. AI-Generated Complaint Descriptions

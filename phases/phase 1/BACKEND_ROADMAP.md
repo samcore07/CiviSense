@@ -12,7 +12,7 @@ In Phase 1, the backend operates as a **lightweight starter service** providing 
 ```sql
 CREATE TABLE IF NOT EXISTS reports (
     id TEXT PRIMARY KEY,            -- UUID v4
-    category TEXT NOT NULL,         -- pothole, garbage, waterlogging, streetlight, road_damage
+    category TEXT NOT NULL,         -- pothole, garbage, waterlogging
     description TEXT NOT NULL,      -- Citizen or simulated AI description
     latitude REAL NOT NULL,         -- GPS decimal degrees
     longitude REAL NOT NULL,        -- GPS decimal degrees
@@ -71,7 +71,6 @@ The following pillars will be implemented to transform CiviSense from an archite
     - *Pothole Detection Dataset* (asphalt ruptures, cracks, deep craters).
     - *Garbage & Waste Classification* (solid waste heaps, illegal dumping).
     - *Waterlogging Segmentation* (surface water ponding, culvert overflow).
-    - *Streetlight Defect Classifier* (luminaire damage, dark zones).
 - **Inference Pipeline**:
   - Run asynchronous inference via PyTorch / ONNX Runtime.
   - Return bounding box coordinates (`[xmin, ymin, xmax, ymax]`), confidence scores, and estimated vehicular hazard index (Grade 1–5).

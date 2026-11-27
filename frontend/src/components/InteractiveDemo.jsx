@@ -21,13 +21,7 @@ export default function InteractiveDemo({ onLaunchApp }) {
     if (category === 'waterlogging') {
       return `Automated AI Inspection Report: Stormwater accumulation pooling across ${locationName} with estimated surface area of ${severity * 7}m². Storm drain culvert appears silted and choked. Immediate deployment of high-capacity municipal suction dewatering pumps required.`;
     }
-    if (category === 'streetlight') {
-      return `Automated AI Inspection Report: Non-operational municipal streetlight fixture at ${locationName}. Photometric shadow creates a dark blind zone of ~${severity * 12} metres, compromising pedestrian night safety. Electrical linesman inspection scheduled.`;
-    }
-    if (category === 'garbage') {
-      return `Automated AI Inspection Report: Open municipal solid waste overflow accumulating on shoulder of ${locationName}. Debris volume estimated at ${severity * 1.2}m³. Automated dispatch created for morning compactor sanitation vehicle.`;
-    }
-    return `Automated AI Inspection Report: Structural pavement cracking and concrete displacement observed on ${locationName}. Severity ${severity}/5. Rebar inspection and asphalt sealant work order queued.`;
+    return `Automated AI Inspection Report: Open municipal solid waste overflow accumulating on shoulder of ${locationName}. Debris volume estimated at ${severity * 1.2}m³. Automated dispatch created for morning compactor sanitation vehicle.`;
   };
 
   const aiText = generateAIDescription();
@@ -59,9 +53,7 @@ export default function InteractiveDemo({ onLaunchApp }) {
                 >
                   <option value="pothole">Pothole & Surface Damage</option>
                   <option value="waterlogging">Monsoon Waterlogging & Culvert Sump</option>
-                  <option value="streetlight">Non-Functional Dark Streetlight</option>
                   <option value="garbage">Garbage & Solid Waste Dump</option>
-                  <option value="road_damage">Structural Pavement Fracture</option>
                 </select>
               </div>
 

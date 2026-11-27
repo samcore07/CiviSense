@@ -61,7 +61,7 @@ create trigger on_auth_user_created
 -- 2. REPORTS TABLE (Civic Complaints, AI Triage, GPS Geotags & Deduplication)
 create table if not exists public.reports (
   id uuid default gen_random_uuid() primary key,
-  category text not null check (category in ('pothole', 'garbage', 'waterlogging', 'streetlight', 'road_damage')),
+  category text not null check (category in ('pothole', 'garbage', 'waterlogging')),
   description text not null,
   latitude double precision not null,
   longitude double precision not null,
@@ -146,15 +146,6 @@ values
     5,
     'assigned',
     now() - interval '5 hours'
-  ),
-  (
-    'streetlight',
-    'Automated Computer Vision & GIS Triage: Non-operational sodium vapor luminaire causing dark zone near Salt Lake Sector V junction. Severity: 3/5. Linesman assigned.',
-    22.5801,
-    88.4312,
-    3,
-    'in_progress',
-    now() - interval '1 day'
   ),
   (
     'garbage',

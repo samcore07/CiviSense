@@ -34,7 +34,7 @@
   2. **Hero Section**: Value proposition focusing on *"From Pixels to Asphalt Restoration"*, with dual CTAs (`Report Issue` and `Explore Live GIS Map`).
   3. **Preface Section**:
      - 3-column incident preview card (`Computer Vision`, `40m Spatial Deduplication`, `AI Complaint Synthesis`).
-     - Interactive scenario selector (`Pothole`, `Waterlogging`, `Streetlight`, `Garbage Dump`).
+     - Interactive scenario selector (`Pothole`, `Waterlogging`, `Garbage Dump`).
      - Key metrics strip (`96.8%`, `40m`, `0.4s`, `100%`).
      - Live OpenStreetMap GIS console with category filtering.
   4. **Features Section**: 7 core architectural pillars.

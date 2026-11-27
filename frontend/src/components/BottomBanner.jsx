@@ -7,11 +7,10 @@ export default function BottomBanner({ onOpenApp }) {
       <div className="container">
         <div className="bottom-banner">
           <h2 className="banner-title">
-            Computer Vision + AI + GIS for Smarter Civic Governance.
+            Neural Vision + Spatial Deduplication + Live GIS Radar.
           </h2>
           <p className="banner-subtitle">
-            Deploy automated road damage triage in your municipality. Eliminate duplicate complaint tickets,
-            auto-generate structured municipal work orders, and monitor every repair live on OpenStreetMap.
+            Automate defect triage: eliminate duplicate complaints with 40m Haversine clustering and dispatch field squads in real time.
           </p>
 
           <div className="banner-actions">

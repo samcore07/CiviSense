@@ -6,37 +6,37 @@ export default function WorkflowSection() {
     {
       step: '01',
       icon: <Camera size={20} />,
-      title: 'Mobile Geotag & Photo Capture',
-      desc: 'Citizen encounters a road defect, opens the mobile app, captures an image, and locks high-precision satellite GPS coordinates (±2m accuracy).',
-      badge: 'Browser Geolocation API'
+      title: 'Geotag & Defect Capture',
+      desc: 'Citizen captures defect photo with automated satellite GPS coordinate lock (±2m accuracy).',
+      badge: 'HTML5 Geolocation API'
     },
     {
       step: '02',
       icon: <Eye size={20} />,
-      title: 'Computer Vision Inference',
-      desc: 'YOLO neural model processes the photograph, detects bounding boxes, classifies the hazard (pothole, waterlogging, streetlight, garbage), and estimates severity.',
-      badge: 'YOLO Multi-Class Vision'
+      title: 'Custom YOLO11 Inference',
+      desc: 'Custom-trained neural models segment craters, waterlogging, and waste on Apple Silicon MPS.',
+      badge: 'Custom YOLO11 + MPS'
     },
     {
       step: '03',
       icon: <GitMerge size={20} />,
       title: '40m Spatial Deduplication',
-      desc: 'Haversine mathematical algorithm scans the database within a 40-metre proximity window, linking duplicate citizen pings to the root ticket.',
-      badge: 'Haversine Cluster Filter'
+      desc: 'Haversine clustering suppresses duplicate pings within 40m and links to the root incident.',
+      badge: 'Haversine Proximity Filter'
     },
     {
       step: '04',
       icon: <Sparkles size={20} />,
       title: 'AI Complaint Synthesis',
-      desc: 'Local AI LLM automatically crafts an official, structured municipal complaint text with hazard assessment, equipment requirements, and priority level.',
+      desc: 'Automated synthesis generates structured municipal dispatch briefs and severity ratings in under 0.5s.',
       badge: 'Automated Work Order Text'
     },
     {
       step: '05',
       icon: <MapPin size={20} />,
-      title: 'GIS Dispatch & Lifecycle Tracking',
-      desc: 'Ward engineers view the incident on the live OpenStreetMap console, dispatch road maintenance crews, and transition status to Resolved with photo audit proof.',
-      badge: 'Reported → Assigned → Resolved'
+      title: 'GIS Dispatch & Lifecycle',
+      desc: 'Ward engineers dispatch maintenance squads on the live GIS map; citizens track real-time status.',
+      badge: 'Reported → Resolved'
     }
   ];
 
@@ -49,7 +49,7 @@ export default function WorkflowSection() {
             The End-to-End Civic Intelligence Workflow.
           </h2>
           <p className="section-desc">
-            An automated, transparent pipeline from the initial smartphone camera click to asphalt restoration and municipal sign-off.
+            An automated, transparent pipeline from initial camera click to asphalt restoration and municipal sign-off.
           </p>
         </div>
 

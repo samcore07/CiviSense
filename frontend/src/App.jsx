@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import PrefaceSection from './components/PrefaceSection';
@@ -96,6 +96,9 @@ export default function App() {
     localStorage.setItem('civisense_theme', theme);
   }, [theme]);
 
+  const isClickScrollingRef = useRef(false);
+  const clickScrollTimeoutRef = useRef(null);
+
   // ScrollSpy: dynamically and smoothly update the active bookmark pill as user scrolls
   useEffect(() => {
     if (currentView !== 'landing') return;
@@ -103,6 +106,9 @@ export default function App() {
     const sectionIds = ['preface', 'features', 'workflow', 'tutorial'];
 
     const handleScroll = () => {
+      // Avoid flickering intermediate pills while smooth-scrolling to a clicked tab
+      if (isClickScrollingRef.current) return;
+
       const scrollPos = window.scrollY + 140; // 140px header offset
 
       // If at top of the page, highlight preface
@@ -152,9 +158,15 @@ export default function App() {
     setCurrentView('landing');
   };
 
-  // Smooth scroll handler for nav clicks
+  // Smooth scroll handler for nav clicks with animation lock
   const handleNavClick = (id) => {
     setActiveNav(id);
+    isClickScrollingRef.current = true;
+    if (clickScrollTimeoutRef.current) clearTimeout(clickScrollTimeoutRef.current);
+    clickScrollTimeoutRef.current = setTimeout(() => {
+      isClickScrollingRef.current = false;
+    }, 750);
+
     if (currentView !== 'landing') {
       setCurrentView('landing');
     }
@@ -191,6 +203,7 @@ export default function App() {
             onSignOut={handleSignOut}
             activeNav={activeNav}
             setActiveNav={setActiveNav}
+            onNavClick={handleNavClick}
           />
 
           {/* 2nd Screenshot stays on top */}

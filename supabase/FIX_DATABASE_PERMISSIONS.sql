@@ -134,14 +134,3 @@ select
   'assigned',
   now() - interval '5 hours'
 where not exists (select 1 from public.reports where category = 'waterlogging' limit 1);
-
-insert into public.reports (category, description, latitude, longitude, severity, status, created_at)
-select
-  'streetlight',
-  'Automated Computer Vision & GIS Triage: Non-functional sodium vapor luminaire fixture creating 35m dark zone near Sealdah flyover. Severity: 3/5.',
-  22.5672,
-  88.3715,
-  3,
-  'resolved',
-  now() - interval '1 day'
-where not exists (select 1 from public.reports where category = 'streetlight' limit 1);

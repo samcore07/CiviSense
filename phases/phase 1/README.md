@@ -12,7 +12,7 @@ The focus of this phase is establishing a **high-fidelity presentation frontend*
 ## 2. Core Platform Identity & Concept
 - **Platform Name**: CiviSense (`CS`)
 - **Core Concept**: `Computer Vision + AI + GIS for Smarter Civic Governance`
-- **Primary Mission**: Automate the detection, classification, spatial deduplication, description synthesis, and GIS routing of urban civic infrastructure defects (potholes, garbage overflow, waterlogging, broken streetlights).
+- **Primary Mission**: Automate the detection, classification, spatial deduplication, description synthesis, and GIS routing of urban civic infrastructure defects (potholes, garbage overflow, waterlogging).
 
 ```
 [ Citizen Smartphone / GPS ]

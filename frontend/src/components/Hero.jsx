@@ -14,10 +14,8 @@ export default function Hero({ onStartReporting, onExploreApp }) {
 
         {/* Hero Subtitle matching Screenshot 2 */}
         <p className="hero-subtext">
-          CiviSense automates civic complaint resolution: computer vision detects potholes,
-          garbage, waterlogging, and dark streetlights, GPS geotags exact locations,
-          40m spatial deduplication suppresses duplicate reports, and local AI generates
-          structured complaint descriptions on a live GIS admin map.
+          Custom-trained YOLO11 vision detects asphalt craters, urban stormwater, and municipal waste in real time.
+          Geotagged with 40m spatial deduplication on an interactive GIS dispatch radar.
         </p>
 
         {/* Action CTAs: "Report Issue" and "Explore Live GIS Map" */}

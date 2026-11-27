@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { Sparkles, Eye, GitMerge, MapPin, Layers, RefreshCw } from './Icons';
+import { disperseOverlappingMarkers } from './MainApp';
 
 // Custom colored GIS map marker generator
 const createMapPin = (status) => {
@@ -34,12 +35,12 @@ export default function PrefaceSection({ reports = [], onRefreshReports }) {
       title: 'Major Arterial Pothole & Road Surface Rupture',
       coords: '22.5726° N, 88.3639° E',
       cvClassification: 'Pothole · Grade 4/5',
-      cvSub: 'YOLOv8 detected 42cm asphalt crater with 97.4% confidence',
+      cvSub: 'Custom YOLO11 detected 42cm asphalt crater (97.4% conf · MPS)',
       cvBounding: 'bbox: [120, 240, 480, 560] · skid_risk: HIGH',
       dedupStatus: 'Duplicate Suppressed',
       dedupSub: 'Spatial Haversine matched 1 ticket within 18.2m',
       dedupBadge: 'Linked to Ticket #CS-9480 · 0 Duplicates Dispatched',
-      aiDescription: '"Severe road surface crater on heavy transit corridor posing critical two-wheeler skid hazard. Immediate cold-mix asphalt patching requested."',
+      aiDescription: '"Severe road crater posing critical two-wheeler skid hazard. Immediate cold-mix asphalt patching requested."',
       status: 'Awaiting Triage'
     },
     {
@@ -49,28 +50,13 @@ export default function PrefaceSection({ reports = [], onRefreshReports }) {
       title: 'Monsoon Runoff Sump Overflow & Underpass Ponding',
       coords: '22.5780° N, 88.3690° E',
       cvClassification: 'Waterlogging · Grade 5/5',
-      cvSub: 'CV model segmented 28m² flood surface across pedestrian crossing',
+      cvSub: 'Custom YOLO11 segmented 28m² flood zone with degenerate box guard',
       cvBounding: 'segmentation: 28.4m² surface · flow_block: CRITICAL',
       dedupStatus: 'Root Incident Logged',
       dedupSub: 'No nearby reports within 40m · Priority dispatched',
       dedupBadge: 'Unique Incident · Automated GIS Pin Created',
-      aiDescription: '"Extensive stormwater accumulation exceeding 15cm depth near metro station underpass. Culvert silt blockage detected. Suction pump crew dispatched."',
+      aiDescription: '"Stormwater ponding exceeding 15cm near underpass. Culvert silt blockage detected. Dewatering crew dispatched."',
       status: 'Crew Mobilized'
-    },
-    {
-      id: 'streetlight',
-      categoryName: '💡 Broken Streetlight',
-      incidentId: 'CS-9488',
-      title: 'Non-Functional Sodium Vapor Streetlight · Dark Zone',
-      coords: '22.5695° N, 88.3580° E',
-      cvClassification: 'Streetlight · Grade 3/5',
-      cvSub: 'Vision classifier flagged inactive fixture & photometric shadow',
-      cvBounding: 'luminaire_defect: 0.941 · dark_zone_risk: MODERATE',
-      dedupStatus: 'Duplicate Grouped',
-      dedupSub: 'Clustered 2 citizen submissions into single repair ticket',
-      dedupBadge: 'Grouped 2 Reports within 24m Radius',
-      aiDescription: '"Municipal luminaire non-operational at crossway junction creating unsafe blind spot for night pedestrians. Electrical linesman inspection scheduled."',
-      status: 'Assigned to Ward'
     },
     {
       id: 'garbage',
@@ -79,12 +65,12 @@ export default function PrefaceSection({ reports = [], onRefreshReports }) {
       title: 'Unregulated Municipal Waste Overflow on Road Shoulder',
       coords: '22.5850° N, 88.3750° E',
       cvClassification: 'Garbage Dump · Grade 3/5',
-      cvSub: 'CV model estimated solid waste spill blocking bicycle lane',
+      cvSub: 'Open-Vocab YOLO-World matched black waste bags via tailored lexicon',
       cvBounding: 'solid_waste_volume: ~3.5m³ · lane_obstruction: ACTIVE',
       dedupStatus: 'Root Incident Logged',
       dedupSub: 'Zero duplicates within 40m radius · Route optimized',
       dedupBadge: 'Sanitation Compactor Truck Scheduled',
-      aiDescription: '"Commercial organic and plastic debris spill obstructing northbound curb. Automated work order generated for morning sanitation compactor."',
+      aiDescription: '"Commercial waste spill obstructing curb. Automated work order generated for morning sanitation compactor."',
       status: 'In Progress'
     }
   ];
@@ -100,9 +86,12 @@ export default function PrefaceSection({ reports = [], onRefreshReports }) {
   ];
 
   const filteredMapReports = reports.filter((r) => {
+    if (r.status === 'rejected') return false;
     if (mapFilter === 'all') return true;
     return r.category === mapFilter;
   });
+
+  const dispersedPrefaceMarkers = disperseOverlappingMarkers(filteredMapReports);
 
   const center = reports.length > 0 && reports[0].latitude
     ? [reports[0].latitude, reports[0].longitude]
@@ -115,11 +104,10 @@ export default function PrefaceSection({ reports = [], onRefreshReports }) {
         <div className="section-header" style={{ marginBottom: '36px' }}>
           <span className="section-eyebrow">PREFACE & SYSTEM TELEMETRY</span>
           <h2 className="section-title">
-            Integrated Computer Vision & Live GIS Radar.
+            Custom Vision & Live GIS Radar Telemetry.
           </h2>
           <p className="section-desc">
-            Explore active incident telemetry, YOLO defect categorization, 40m spatial deduplication,
-            and inspect live civic reports on the interactive OpenStreetMap GIS layer below.
+            Inspect real-time YOLO11 damage inference, 40m spatial deduplication, and regional GIS pins on OpenStreetMap.
           </p>
         </div>
 
@@ -251,7 +239,7 @@ export default function PrefaceSection({ reports = [], onRefreshReports }) {
             {/* Filter Pills */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <div className="sample-chips">
-                {['all', 'pothole', 'waterlogging', 'streetlight', 'garbage', 'road_damage'].map((cat) => (
+                {['all', 'pothole', 'waterlogging', 'garbage'].map((cat) => (
                   <button
                     key={cat}
                     className={`sample-chip-btn ${mapFilter === cat ? 'active' : ''}`}
@@ -276,15 +264,15 @@ export default function PrefaceSection({ reports = [], onRefreshReports }) {
           </div>
 
           <div className="preface-map-wrap">
-            <MapContainer center={center} zoom={13} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+            <MapContainer center={[22.5726, 88.3639]} zoom={10} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {filteredMapReports.map((r) => (
+              {dispersedPrefaceMarkers.map((r) => (
                 <Marker
                   key={r.id}
-                  position={[r.latitude, r.longitude]}
+                  position={[r.mapLat, r.mapLng]}
                   icon={createMapPin(r.status)}
                 >
                   <Popup>

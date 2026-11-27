@@ -20,7 +20,8 @@ import {
   Trash2,
   Eye,
   Sparkles,
-  GitMerge
+  GitMerge,
+  Lock
 } from './Icons';
 import {
   isSupabaseConfigured,
@@ -29,9 +30,10 @@ import {
   supabaseUpdateReportStatus,
   supabaseSubscribeReports
 } from '../supabase';
+import AIDetector from './AIDetector';
 
 const API = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '');
-const categories = ['pothole', 'garbage', 'waterlogging', 'streetlight', 'road_damage'];
+const categories = ['pothole', 'garbage', 'waterlogging'];
 const statuses = ['reported', 'assigned', 'in_progress', 'resolved', 'rejected'];
 
 // Fix Leaflet Default Icon in React
@@ -64,9 +66,52 @@ const createMapPin = (status, category) => {
   });
 };
 
+// Disperse overlapping map coordinates radially so every incident pin is individually visible and clickable
+export const disperseOverlappingMarkers = (reportList) => {
+  const coordGroups = {};
+
+  return reportList.map((r) => {
+    const lat = Number(r.latitude);
+    const lng = Number(r.longitude);
+    if (isNaN(lat) || isNaN(lng)) return r;
+
+    // Group pins that fall within ~100m of each other
+    const key = `${lat.toFixed(3)}_${lng.toFixed(3)}`;
+    const count = coordGroups[key] || 0;
+    coordGroups[key] = count + 1;
+
+    if (count === 0) {
+      return { ...r, mapLat: lat, mapLng: lng, isDispersed: false };
+    }
+
+    // Offset in a spiral ring around the central landmark
+    // ~0.0075° offset is ~750m in real-world scale, perfectly separating pins at zoom 10
+    const angle = ((count - 1) * (2 * Math.PI)) / 6;
+    const ring = Math.floor((count - 1) / 6) + 1;
+    const radius = 0.0075 * ring;
+    const latOffset = radius * Math.cos(angle);
+    const lngOffset = radius * Math.sin(angle) * 1.15;
+
+    return {
+      ...r,
+      mapLat: Number((lat + latOffset).toFixed(6)),
+      mapLng: Number((lng + lngOffset).toFixed(6)),
+      isDispersed: true
+    };
+  });
+};
+
 export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggleTheme }) {
   const [reports, setReports] = useState([]);
-  const [activeTab, setActiveTab] = useState('all_in_one'); // 'all_in_one' | 'report' | 'table'
+  const isAdmin = user?.role === 'admin';
+  const [activeTab, setActiveTab] = useState('map'); // 'map' | 'ai_detector' | 'report' | 'table'
+
+  // Keep admin restricted to map and table tabs only
+  useEffect(() => {
+    if (isAdmin && (activeTab === 'report' || activeTab === 'ai_detector')) {
+      setActiveTab('map');
+    }
+  }, [isAdmin, activeTab]);
   const [form, setForm] = useState({
     category: 'pothole',
     description: '',
@@ -173,6 +218,143 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
     setPhotoPreview(null);
   }
 
+  function handlePrefillFromAI(aiData) {
+    const cat = (!aiData.category || aiData.category === 'none') ? 'pothole' : aiData.category;
+    setForm((f) => ({
+      ...f,
+      category: cat,
+      severity: aiData.severity || f.severity,
+      description: aiData.description || f.description
+    }));
+    if (aiData.photoFile) {
+      setPhoto(aiData.photoFile);
+    }
+    if (aiData.photoPreview) {
+      setPhotoPreview(aiData.photoPreview);
+    }
+    setActiveTab('report');
+    setMessage('AI defect data pre-filled into registration form! Review coordinates and submit.');
+    setMessageType('success');
+  }
+
+  async function handleDirectFileFromAI(aiData) {
+    const cat = (!aiData.category || aiData.category === 'none') ? 'garbage' : aiData.category;
+    const sev = aiData.severity || 4;
+    const desc = aiData.description || `AI automated inspection report for ${cat}.`;
+    const photoFile = aiData.photoFile || photo;
+
+    setForm((f) => ({
+      ...f,
+      category: cat,
+      severity: sev,
+      description: desc
+    }));
+    if (photoFile) setPhoto(photoFile);
+    if (aiData.photoPreview) setPhotoPreview(aiData.photoPreview);
+
+    setBusy(true);
+    setMessage('Submitting complaint ticket from AI detection...');
+    setMessageType('warning');
+
+    // Try Supabase first
+    if (isSupabaseConfigured()) {
+      try {
+        const result = await supabaseCreateReport({
+          category: cat,
+          description: desc,
+          latitude: form.latitude,
+          longitude: form.longitude,
+          severity: sev,
+          photoFile,
+          user
+        });
+        if (result.duplicateWarning) {
+          setMessage(`Duplicate Alert: Linked to existing ${cat} ticket #${result.duplicateOf?.slice(0, 8) || 'root'} within 40m.`);
+          setMessageType('warning');
+        } else {
+          setMessage('Complaint submitted successfully from AI detection! Forwarded to status tracking.');
+          setMessageType('success');
+        }
+        await loadReports();
+        setActiveTab('table');
+        setBusy(false);
+        return;
+      } catch (err) {
+        console.warn('Supabase note, falling back to local API:', err);
+      }
+    }
+
+    // Fallback to FastAPI
+    try {
+      const data = new FormData();
+      data.append('category', cat);
+      data.append('description', desc);
+      data.append('latitude', form.latitude);
+      data.append('longitude', form.longitude);
+      data.append('severity', sev);
+      if (photoFile) data.append('photo', photoFile);
+
+      const res = await fetch(`${API}/api/reports`, {
+        method: 'POST',
+        body: data
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.detail || 'Failed to submit report');
+
+      if (result.duplicate_warning) {
+        setMessage(`Duplicate Alert: Linked to parent ticket #${result.duplicate_of?.slice(0, 8) || 'root'} within 40m.`);
+        setMessageType('warning');
+      } else {
+        setMessage('Complaint submitted successfully from AI detection! Forwarded to status tracking.');
+        setMessageType('success');
+      }
+      await loadReports();
+      setActiveTab('table');
+    } catch (err) {
+      setMessage('Submission note: ' + err.message);
+      setMessageType('error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function analyzeUploadedPhoto() {
+    if (!photo) return;
+    setBusy(true);
+    setMessage('Analyzing photo with AI defect detection...');
+    setMessageType('warning');
+    try {
+      const formData = new FormData();
+      formData.append('file', photo);
+      const res = await fetch(`${API}/api/detect/image?model=all`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setForm((f) => ({
+          ...f,
+          category: data.top_category || f.category,
+          severity: data.suggested_severity || f.severity,
+          description: data.ai_description || f.description
+        }));
+        if (data.annotated_image) {
+          setPhotoPreview(data.annotated_image);
+        }
+        setMessage(`AI Analysis Complete: Verified ${data.top_category.toUpperCase()} (${(data.top_confidence * 100).toFixed(1)}% confidence). Category & severity updated!`);
+        setMessageType('success');
+      } else {
+        setMessage('Defect analysis note: ' + (data.detail || 'Could not verify issue'));
+        setMessageType('warning');
+      }
+    } catch (err) {
+      setMessage('Vision API note: ' + err.message);
+      setMessageType('warning');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   // AI-Generated Complaint Description Helper
   function generateAIDescription() {
     const cat = form.category.replace('_', ' ');
@@ -185,12 +367,8 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
       text = `Automated Computer Vision & GIS Triage: Deep road crater observed near GPS coordinates (${lat.toFixed(4)}, ${lon.toFixed(4)}). Assessed severity level: ${sev}/5. High risk of two-wheeler skid and vehicular disruption. Immediate cold-mix asphalt patch dispatch recommended.`;
     } else if (form.category === 'waterlogging') {
       text = `Automated Computer Vision & GIS Triage: Severe stormwater pooling obstructing pedestrian crossing near GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}). Severity: ${sev}/5. Drainage culvert blockage flagged; suction dewatering pump required.`;
-    } else if (form.category === 'streetlight') {
-      text = `Automated Computer Vision & GIS Triage: Non-operational municipal streetlight fixture at GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}). Severity: ${sev}/5. Creating hazardous dark zone for night commuters. Electrical linesman inspection queued.`;
-    } else if (form.category === 'garbage') {
-      text = `Automated Computer Vision & GIS Triage: Unmanaged solid waste accumulation on road shoulder near GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}). Severity: ${sev}/5. Work order routed to morning sanitation compactor squad.`;
     } else {
-      text = `Automated Computer Vision & GIS Triage: Structural concrete fracture and road pavement displacement detected at GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}). Severity: ${sev}/5. Asphalt sealant repair scheduled.`;
+      text = `Automated Computer Vision & GIS Triage: Unmanaged solid waste accumulation on road shoulder near GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}). Severity: ${sev}/5. Work order routed to morning sanitation compactor squad.`;
     }
 
     setForm((f) => ({ ...f, description: text }));
@@ -218,10 +396,10 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
         });
 
         if (result.duplicateWarning) {
-          setMessage(`Duplicate Complaint Alert: An existing ${form.category.replace('_', ' ')} ticket within 40m was detected! Your report has been linked to parent Ticket #${result.duplicateOf?.slice(0, 8) || 'root'}.`);
+          setMessage(`Duplicate Complaint Alert: An existing ${form.category.replace('_', ' ')} ticket within 40m was detected! Linked to parent Ticket #${result.duplicateOf?.slice(0, 8) || 'root'}. Status: REPORTED.`);
           setMessageType('warning');
         } else {
-          setMessage('Civic issue registered successfully! Geotagged on GIS map and queued for municipal triage.');
+          setMessage('Civic issue registered successfully with status: REPORTED! Queued for municipal admin review.');
           setMessageType('success');
         }
 
@@ -234,6 +412,7 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
         });
         clearPhoto();
         await loadReports();
+        setActiveTab('table');
         setBusy(false);
         return;
       } catch (supabaseErr) {
@@ -261,10 +440,10 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
       if (!res.ok) throw new Error(result.detail || 'Submission failed');
 
       if (result.duplicate_warning) {
-        setMessage(`Duplicate Complaint Alert: An existing ${form.category.replace('_', ' ')} ticket within 40m was detected! Your report has been linked to parent Ticket #${result.duplicate_of?.slice(0, 8) || 'root'} to prevent duplicate dispatch.`);
+        setMessage(`Duplicate Complaint Alert: An existing ${form.category.replace('_', ' ')} ticket within 40m was detected! Linked to parent Ticket #${result.duplicate_of?.slice(0, 8) || 'root'}. Status: REPORTED.`);
         setMessageType('warning');
       } else {
-        setMessage('Civic issue registered successfully! Geotagged on GIS map and queued for municipal triage.');
+        setMessage('Civic issue registered successfully with status: REPORTED! Queued for municipal admin review.');
         setMessageType('success');
       }
 
@@ -277,6 +456,7 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
       });
       clearPhoto();
       await loadReports();
+      setActiveTab('table');
     } catch (err) {
       setMessage(err.message || 'Submission error');
       setMessageType('error');
@@ -287,6 +467,12 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
 
   // Change status of report (Complaint Status Tracking via Supabase)
   async function changeStatus(id, newStatus) {
+    if (!isAdmin) {
+      setMessage('Access Restricted: Only Municipal Administrators can dispatch work orders and change status.');
+      setMessageType('error');
+      return;
+    }
+
     if (isSupabaseConfigured()) {
       try {
         await supabaseUpdateReportStatus(id, newStatus);
@@ -323,6 +509,9 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
     ? [reports[0].latitude, reports[0].longitude]
     : [22.5726, 88.3639];
 
+  const validReports = reports.filter((r) => r.status !== 'rejected');
+  const mapMarkers = disperseOverlappingMarkers(validReports);
+
   const filteredReports = reports.filter((r) => {
     const matchesSearch =
       r.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -348,29 +537,19 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                 CS
               </div>
               <span style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-0.3px' }}>
-                {user?.role === 'admin' ? 'CiviSense Admin GIS Operations' : 'CiviSense Citizen Reporting Console'}
+                {isAdmin ? 'CiviSense Admin GIS Operations' : 'CiviSense Citizen Reporting Console'}
               </span>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {user ? (
-              <div className="app-user-pill">
-                <span className="logged-in-dot"></span>
-                <span>Logged in as <strong>{user.name}</strong></span>
-                <span className="app-user-role-badge">
-                  {user.role === 'admin' ? 'ADMIN' : 'CITIZEN'}
-                </span>
-              </div>
-            ) : (
-              <button
-                className="btn-pill-primary"
-                style={{ padding: '6px 14px', fontSize: '12px' }}
-                onClick={onBackToLanding}
-              >
-                Login
-              </button>
-            )}
+            <div className="app-user-pill">
+              <span className="logged-in-dot"></span>
+              <span>Logged in as <strong>{user?.name || (isAdmin ? 'Municipal GIS Officer' : 'Citizen Reporter')}</strong></span>
+              <span className="app-user-role-badge">
+                {isAdmin ? 'ADMIN' : 'CITIZEN'}
+              </span>
+            </div>
 
             <button
               className="theme-toggle-btn"
@@ -396,24 +575,49 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
       {/* Navigation Sub-Tabs */}
       <div className="app-tabs-bar">
         <div className="app-tabs-inner">
-          <button
-            className={`app-tab-item ${activeTab === 'all_in_one' ? 'active' : ''}`}
-            onClick={() => setActiveTab('all_in_one')}
-          >
-            <Layers size={15} /> Dual Workstation (GPS Form + Live GIS Map)
-          </button>
-          <button
-            className={`app-tab-item ${activeTab === 'table' ? 'active' : ''}`}
-            onClick={() => setActiveTab('table')}
-          >
-            <ShieldCheck size={15} /> Complaint Status Tracking ({reports.length} Reports)
-          </button>
-          <button
-            className={`app-tab-item ${activeTab === 'report' ? 'active' : ''}`}
-            onClick={() => setActiveTab('report')}
-          >
-            <Camera size={15} /> Citizen Complaint Registration Only
-          </button>
+          {isAdmin ? (
+            <>
+              <button
+                className={`app-tab-item ${activeTab === 'map' ? 'active' : ''}`}
+                onClick={() => setActiveTab('map')}
+              >
+                <MapPin size={15} /> Live GIS Map
+              </button>
+              <button
+                className={`app-tab-item ${activeTab === 'table' ? 'active' : ''}`}
+                onClick={() => setActiveTab('table')}
+              >
+                <ShieldCheck size={15} /> Complaint Status Tracking ({validReports.length} Reports)
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className={`app-tab-item ${activeTab === 'map' ? 'active' : ''}`}
+                onClick={() => setActiveTab('map')}
+              >
+                <MapPin size={15} /> Live GIS Map
+              </button>
+              <button
+                className={`app-tab-item ${activeTab === 'ai_detector' ? 'active' : ''}`}
+                onClick={() => setActiveTab('ai_detector')}
+              >
+                <Camera size={15} /> AI Issue Detection
+              </button>
+              <button
+                className={`app-tab-item ${activeTab === 'report' ? 'active' : ''}`}
+                onClick={() => setActiveTab('report')}
+              >
+                <Send size={15} /> Citizen Complaint
+              </button>
+              <button
+                className={`app-tab-item ${activeTab === 'table' ? 'active' : ''}`}
+                onClick={() => setActiveTab('table')}
+              >
+                <ShieldCheck size={15} /> Complaint Status Tracking ({validReports.length} Reports)
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -436,7 +640,7 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
         <div className="app-stat-banner">
           <div className="app-stat-card">
             <div>
-              <div className="num">{reports.length}</div>
+              <div className="num">{validReports.length}</div>
               <div className="desc">Total Tracked Complaints</div>
             </div>
             <Clock size={24} style={{ color: 'var(--text-muted)' }} />
@@ -473,12 +677,18 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
           </div>
         </div>
 
-        {/* Dual Workstation: Submit Form + Live Map */}
-        {(activeTab === 'all_in_one' || activeTab === 'report') && (
-          <div
-            className="app-columns"
-            style={activeTab === 'report' ? { gridTemplateColumns: '1fr', maxWidth: '640px', margin: '0 auto' } : {}}
-          >
+        {/* AI Defect Scanner Workstation */}
+        {activeTab === 'ai_detector' && (
+          <AIDetector
+            API={API}
+            onPrefillComplaint={handlePrefillFromAI}
+            onDirectFileComplaint={handleDirectFileFromAI}
+          />
+        )}
+
+        {/* Citizen Complaint Registration Tab */}
+        {activeTab === 'report' && (
+          <div style={{ maxWidth: '640px', margin: '0 auto' }}>
             {/* Submit Panel */}
             <section className="app-panel">
               <div className="app-panel-header">
@@ -505,10 +715,8 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                       >
                         {c === 'pothole' && '🕳️ '}
                         {c === 'waterlogging' && '🌊 '}
-                        {c === 'streetlight' && '💡 '}
                         {c === 'garbage' && '🗑️ '}
-                        {c === 'road_damage' && '⚠️ '}
-                        {c.replace('_', ' ')}
+                        {c}
                       </button>
                     ))}
                   </div>
@@ -522,7 +730,7 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                       <Camera size={26} style={{ color: 'var(--accent-cyan)', marginBottom: '8px' }} />
                       <div style={{ fontSize: '13px', fontWeight: 700 }}>Tap to Capture or Upload Photo</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Used for YOLO damage detection & validation
+                        Used for defect detection & validation
                       </div>
                       <input
                         type="file"
@@ -532,17 +740,28 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                       />
                     </label>
                   ) : (
-                    <div className="photo-preview-box">
-                      <img src={photoPreview} alt="Defect Preview" />
+                    <>
+                      <div className="photo-preview-box">
+                        <img src={photoPreview} alt="Defect Preview" />
+                        <button
+                          type="button"
+                          className="photo-clear-btn"
+                          onClick={clearPhoto}
+                          title="Remove photo"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        className="photo-clear-btn"
-                        onClick={clearPhoto}
-                        title="Remove photo"
+                        className="btn-ai-gen"
+                        onClick={analyzeUploadedPhoto}
+                        disabled={busy}
+                        style={{ marginTop: '8px', width: '100%', justifyContent: 'center' }}
                       >
-                        <Trash2 size={13} />
+                        <Sparkles size={13} /> Run AI Defect Verification
                       </button>
-                    </div>
+                    </>
                   )}
                 </div>
 
@@ -643,10 +862,12 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                 </button>
               </form>
             </section>
+          </div>
+        )}
 
-            {/* Live GIS Map Panel */}
-            {activeTab !== 'report' && (
-              <section className="app-panel">
+        {/* Live GIS Map Tab */}
+        {activeTab === 'map' && (
+          <section className="app-panel">
                 <div className="app-panel-header">
                   <div>
                     <span className="preview-eyebrow">LIVE GIS ISSUE MAP</span>
@@ -662,15 +883,15 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                 </div>
 
                 <div className="app-map-container">
-                  <MapContainer center={center} zoom={13} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+                  <MapContainer center={[22.5726, 88.3639]} zoom={10} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
                     <TileLayer
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    {reports.map((r) => (
+                    {mapMarkers.map((r) => (
                       <Marker
                         key={r.id}
-                        position={[r.latitude, r.longitude]}
+                        position={[r.mapLat, r.mapLng]}
                         icon={createMapPin(r.status, r.category)}
                       >
                         <Popup>
@@ -682,7 +903,12 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                               {r.description}
                             </div>
                             <div style={{ fontSize: '11px', color: '#0F172A' }}>
-                              <strong>GPS:</strong> {r.latitude.toFixed(4)}, {r.longitude.toFixed(4)}
+                              <strong>GPS:</strong> {Number(r.latitude).toFixed(4)}, {Number(r.longitude).toFixed(4)}
+                              {r.isDispersed && (
+                                <span style={{ color: '#D97706', fontSize: '10px', marginLeft: '6px', fontWeight: 600 }}>
+                                  (Cluster pin)
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: '11px', color: '#0F172A' }}>
                               <strong>Severity:</strong> {r.severity} / 5
@@ -711,12 +937,10 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                   </div>
                 </div>
               </section>
-            )}
-          </div>
         )}
 
         {/* Complaint Status Tracking Table */}
-        {(activeTab === 'all_in_one' || activeTab === 'table') && (
+        {activeTab === 'table' && (
           <section className="app-panel" style={{ marginTop: '24px' }}>
             <div className="app-panel-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
               <div>
@@ -791,10 +1015,8 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                           <div style={{ fontWeight: 800, textTransform: 'capitalize' }}>
                             {r.category === 'pothole' && '🕳️ '}
                             {r.category === 'waterlogging' && '🌊 '}
-                            {r.category === 'streetlight' && '💡 '}
                             {r.category === 'garbage' && '🗑️ '}
-                            {r.category === 'road_damage' && '⚠️ '}
-                            {r.category.replace('_', ' ')}
+                            {r.category}
                           </div>
                           <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {r.description}
@@ -826,17 +1048,31 @@ export default function MainApp({ onBackToLanding, user, onSignOut, theme, toggl
                         </td>
 
                         <td>
-                          <select
-                            className="status-select-input"
-                            value={r.status}
-                            onChange={(e) => changeStatus(r.id, e.target.value)}
-                          >
-                            {statuses.map((s) => (
-                              <option key={s} value={s}>
-                                {s.replace('_', ' ').toUpperCase()}
-                              </option>
-                            ))}
-                          </select>
+                          {isAdmin ? (
+                            <select
+                              className="status-select-input"
+                              value={r.status}
+                              onChange={(e) => changeStatus(r.id, e.target.value)}
+                            >
+                              {statuses.map((s) => (
+                                <option key={s} value={s}>
+                                  {s.replace('_', ' ').toUpperCase()}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span
+                              className={`citizen-dispatch-status ${r.status}`}
+                              title="Municipal dispatch status is controlled by municipal administrators"
+                            >
+                              <Lock size={12} />
+                              {r.status === 'reported' && 'Awaiting Dispatch'}
+                              {r.status === 'assigned' && 'Crew Assigned'}
+                              {r.status === 'in_progress' && 'In Field Work'}
+                              {r.status === 'resolved' && 'Work Completed'}
+                              {r.status === 'rejected' && 'Review Declined'}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}

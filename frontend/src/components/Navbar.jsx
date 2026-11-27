@@ -10,7 +10,8 @@ export default function Navbar({
   onOpenAuth,
   onSignOut,
   activeNav,
-  setActiveNav
+  setActiveNav,
+  onNavClick
 }) {
   const navItems = [
     { id: 'preface', label: 'Preface' },
@@ -20,19 +21,23 @@ export default function Navbar({
   ];
 
   const handleNavClick = (id) => {
-    setActiveNav(id);
     if (id === 'app') {
       setCurrentView('app');
+      return;
+    }
+    if (onNavClick) {
+      onNavClick(id);
     } else {
+      setActiveNav(id);
       if (currentView !== 'landing') {
         setCurrentView('landing');
       }
       setTimeout(() => {
         const el = document.getElementById(id);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 50);
+      }, 20);
     }
   };
 
@@ -47,7 +52,7 @@ export default function Navbar({
             </div>
             <div className="brand-info">
               <span className="brand-title">CIVI<span>SENSE</span></span>
-              <span className="brand-subtitle">CV · AI · GIS CIVIC PLATFORM</span>
+              <span className="brand-subtitle">Mapping the Future of Cities</span>
             </div>
           </div>
 

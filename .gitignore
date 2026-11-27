@@ -36,5 +36,9 @@ backend/data/uploads/*
 ehthumbs.db
 Thumbs.db
 
+# Model weights > 100MB or temporary caches
+backend/weights/
+*.weights
+
 # Other scratch directories
 campushub/
