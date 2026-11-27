@@ -1,3 +1,13 @@
+---
+title: CiviSense Backend
+emoji: 🚦
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+app_file: app.py
+pinned: false
+---
+
 # 🛡️ CIVISENSE
 ### *AI-Powered Civic Issue Intelligence: From Pixels to Asphalt Restoration*
 
