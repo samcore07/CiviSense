@@ -34,7 +34,7 @@ if not GARBAGE_PATH.is_file():
     if alt.is_file():
         GARBAGE_PATH = alt
 
-DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
 CONFIDENCE_THRESHOLD = 0.50
 WATERLOGGING_CONFIDENCE_THRESHOLD = 0.70
 GARBAGE_CONFIDENCE_THRESHOLD = 0.15
