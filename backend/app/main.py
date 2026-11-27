@@ -59,7 +59,7 @@ STATUSES = {"reported", "assigned", "in_progress", "resolved", "rejected"}
 app = FastAPI(title="CIVISENSE API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:.*|http://127\.0\.0\.1:.*",
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
