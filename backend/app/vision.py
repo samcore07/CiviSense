@@ -16,7 +16,7 @@ MODELS_DIR = BASE_DIR / "models"
 
 POTHOLE_PATH = MODELS_DIR / "pothole.pt"
 WATERLOGGING_PATH = MODELS_DIR / "waterlogging.pt"
-GARBAGE_PATH = MODELS_DIR / "yolov8s-worldv2.pt"
+GARBAGE_PATH = MODELS_DIR / "garbage.pt"
 
 # Fallback paths from CIVISENSE_SHARE if needed
 if not POTHOLE_PATH.is_file():
@@ -86,8 +86,7 @@ def load_models():
 
         if GARBAGE_PATH.is_file():
             garbage_model = YOLO(str(GARBAGE_PATH))
-            garbage_model.set_classes(GARBAGE_CLASSES)
-            logger.info("Garbage YOLO-World loaded: %s", garbage_model.names)
+            logger.info("Garbage model loaded: %s", garbage_model.names)
 
         return True
     except Exception:
